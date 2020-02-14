@@ -1,0 +1,288 @@
+Resources:
+
+  DeveloperUser:
+    Type: 'AWS::IAM::User'
+    Properties:
+      ManagedPolicyArns:
+        - 'arn:aws:iam::aws:policy/AdministratorAccess'
+      UserName: Developer
+  DeveloperUserAccessKey:
+    Type: 'AWS::IAM::AccessKey'
+    Properties:
+      UserName: !Ref DeveloperUser
+
+  AWSServiceRoleForAmazonEKS:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      RoleName: eksServiceRole
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - eks.amazonaws.com
+            Action:
+              - 'sts:AssumeRole'
+          - Effect: Allow
+            Principal:
+              AWS:
+                - !GetAtt
+                  - DeveloperUser
+                  - Arn
+            Action:
+              - 'sts:AssumeRole'
+      ManagedPolicyArns:
+        - 'arn:aws:iam::aws:policy/AmazonEKSServicePolicy'
+        - 'arn:aws:iam::aws:policy/AmazonEKSClusterPolicy'
+  EksUserRole:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      Path: "/"
+      RoleName: eksUserRole
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              AWS: "arn:aws:iam::939089276914:root"
+            Action: "sts:AssumeRole"
+  EKSCluster:
+    Type: 'AWS::EKS::Cluster'
+    Properties:
+      Name: smartOS-qa
+      ResourcesVpcConfig:
+        SecurityGroupIds:
+          - !Ref ControlPlaneSecurityGroup
+        SubnetIds:
+          - !Ref VPCSubnet
+          - !Ref VPCSubnetTwo
+      RoleArn: !GetAtt
+        - AWSServiceRoleForAmazonEKS
+        - Arn
+      Version: 1.14
+
+  RouteTable:
+    Type: 'AWS::EC2::RouteTable'
+    Properties:
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Name
+          Value: Public Subnets
+        - Key: Network
+          Value: Public
+  Route:
+    DependsOn: VPCGatewayAttachment
+    Type: 'AWS::EC2::Route'
+    Properties:
+      RouteTableId: !Ref RouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref InternetGateway
+  Subnet01RouteTableAssociation:
+    Type: 'AWS::EC2::SubnetRouteTableAssociation'
+    Properties:
+      SubnetId: !Ref VPCSubnet
+      RouteTableId: !Ref RouteTable
+  Subnet02RouteTableAssociation:
+    Type: 'AWS::EC2::SubnetRouteTableAssociation'
+    Properties:
+      SubnetId: !Ref VPCSubnetTwo
+      RouteTableId: !Ref RouteTable
+  ControlPlaneSecurityGroup:
+    Type: 'AWS::EC2::SecurityGroup'
+    Properties:
+      GroupName: ControlPlaneSecurity
+      GroupDescription: Cluster communication with worker nodes
+      VpcId: !Ref VPC
+  VPC:
+    Type: 'AWS::EC2::VPC'
+    Properties:
+      CidrBlock: 10.0.0.0/16
+      EnableDnsSupport: 'true'
+      EnableDnsHostnames: 'true'
+  VPCSecurity:
+    Type: 'AWS::EC2::SecurityGroup'
+    Properties:
+      GroupName: VPCSecurity
+      GroupDescription: VPCSecured
+      VpcId: !Ref VPC
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 0
+          ToPort: 65535
+          CidrIp: 0.0.0.0/0
+      SecurityGroupEgress:
+        - IpProtocol: tcp
+          FromPort: 0
+          ToPort: 65535
+          CidrIp: 0.0.0.0/0
+  VPCSubnet:
+    Type: 'AWS::EC2::Subnet'
+    Properties:
+      AvailabilityZone: us-east-2a
+      CidrBlock: 10.0.0.0/24
+      VpcId: !Ref VPC
+  VPCSubnetTwo:
+    Type: 'AWS::EC2::Subnet'
+    Properties:
+      AvailabilityZone: us-east-2b
+      CidrBlock: 10.0.8.0/24
+      VpcId: !Ref VPC
+  InternetGateway:
+    Type: 'AWS::EC2::InternetGateway'
+  VPCGatewayAttachment:
+    Type: 'AWS::EC2::VPCGatewayAttachment'
+    Properties:
+      InternetGatewayId: !Ref InternetGateway
+      VpcId: !Ref VPC
+
+  NodeWorkerRole:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      RoleName: NodeWorkerRole
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - ec2.amazonaws.com
+            Action:
+              - 'sts:AssumeRole'
+          - Effect: Allow
+            Principal:
+              AWS:
+                - !GetAtt
+                  - DeveloperUser
+                  - Arn
+            Action:
+              - 'sts:AssumeRole'
+      ManagedPolicyArns:
+        - 'arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy'
+        - 'arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly'
+        - 'arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy'
+  NodeGroup:
+    Type: 'AWS::EKS::Nodegroup'
+    Properties:
+      ClusterName: smartOS-qa
+      InstanceTypes:
+        - t2.large
+      NodegroupName: ClusterNodeGroup
+      NodeRole: !GetAtt
+        - NodeWorkerRole
+        - Arn
+      ScalingConfig:
+        DesiredSize: 4
+        MinSize: 3
+        MaxSize: 7
+      Subnets:
+        - !Ref VPCSubnet
+        - !Ref VPCSubnetTwo
+    DependsOn: EKSCluster
+
+  # Redis:
+  #   Type: 'AWS::ElastiCache::CacheCluster'
+  #   Properties:
+  #     CacheNodeType: cache.t3.small
+  #     CacheSubnetGroupName: !Ref RedisSubnetGroup
+  #     Engine: redis
+  #     EngineVersion: 5.0.4
+  #     NumCacheNodes: 1
+  #     Port: 6379
+  #     PreferredAvailabilityZone: us-east-2a
+  #     VpcSecurityGroupIds:
+  #       - !Ref VPCSecurity
+  # RedisSubnetGroup:
+  #   Type: 'AWS::ElastiCache::SubnetGroup'
+  #   Properties:
+  #     CacheSubnetGroupName: RedisSubnetGroup
+  #     Description: RedisSubnet
+  #     SubnetIds:
+  #       - !Ref VPCSubnet
+  #       - !Ref VPCSubnetTwo
+
+  PostgresInstance:
+    Type: 'AWS::RDS::DBInstance'
+    Properties:
+      AllocatedStorage: 100
+      BackupRetentionPeriod: 7
+      DBInstanceClass: db.t3.medium
+      DBName: metastore
+      Engine: postgres
+      EngineVersion: 10
+      MultiAZ: 'true'
+      StorageEncrypted: 'true'
+      DBSubnetGroupName: !Ref PostgresSubnetGroup
+      VPCSecurityGroups:
+        - !Ref VPCSecurity
+      MasterUsername: postgres
+      MasterUserPassword: 5bcfd3fb5cba35da5f1be3c347bc
+      Port: 5432
+      PubliclyAccessible: 'true'
+      StorageType: gp2
+  PostgresSubnetGroup:
+    Type: 'AWS::RDS::DBSubnetGroup'
+    Properties:
+      DBSubnetGroupDescription: PostgresSubnet
+      SubnetIds:
+        - !Ref VPCSubnet
+        - !Ref VPCSubnetTwo
+
+  S3Bucket:
+    Type: 'AWS::S3::Bucket'
+    Properties:
+      AccessControl: Private
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      BucketName: agnostic-data-engine-1
+  S3BucketPolicy:
+    Type: 'AWS::S3::BucketPolicy'
+    Properties:
+      Bucket: !Ref S3Bucket
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Action:
+              - 's3:DeleteObject'
+              - 's3:DeleteObjectVersion'
+              - 's3:GetObject'
+              - 's3:GetObjectVersion'
+              - 's3:ListBucket'
+            Effect: Allow
+            Principal:
+              AWS:
+                - !GetAtt
+                  - NodeWorkerRole
+                  - Arn
+            Resource:
+              - !Join
+                - ''
+                - - 'arn:aws:s3:::'
+                  - !Ref S3Bucket
+              - !Join
+                - ''
+                - - 'arn:aws:s3:::'
+                  - !Ref S3Bucket
+                  - /*
+
+Outputs:
+  awsaccesskeyid:
+    Description: access key id for developers
+    Value: !Ref DeveloperUserAccessKey
+  awssecretaccesskey:
+    Description: access key secret for developers
+    Value: !GetAtt DeveloperUserAccessKey.SecretAccessKey
+  developerarn:
+    Description: 'DEVELOPER_ARN, store in aws variables'
+    Value: !GetAtt DeveloperUser.Arn
+  redis:
+    Description: 'REDIS_HOST, store in aws variables'
+    Value: !GetAtt Redis.RedisEndpoint.Address
+  postgres:
+    Description: 'POSTGRES_ADDRESS, store in aws variables'
+    Value: !GetAtt PostgresInstance.Endpoint.Address
+  region:
+    Description: 'REGION, store in aws variables'
+    Value: us-east-2
