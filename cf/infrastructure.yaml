@@ -50,7 +50,7 @@ Resources:
   EKSCluster:
     Type: 'AWS::EKS::Cluster'
     Properties:
-      Name: smartOS-qa
+      Name: hindsight-eks
       ResourcesVpcConfig:
         SecurityGroupIds:
           - !Ref ControlPlaneSecurityGroup
@@ -164,7 +164,7 @@ Resources:
   NodeGroup:
     Type: 'AWS::EKS::Nodegroup'
     Properties:
-      ClusterName: smartOS-qa
+      ClusterName: hindsight-eks
       InstanceTypes:
         - t2.large
       NodegroupName: ClusterNodeGroup
