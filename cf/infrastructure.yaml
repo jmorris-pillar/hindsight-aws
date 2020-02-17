@@ -11,17 +11,6 @@ Parameters:
     Default: 5bcfd3fb5cba35da5f1be3c347bc
 
 Resources:
-  DeveloperUser:
-    Type: 'AWS::IAM::User'
-    Properties:
-      ManagedPolicyArns:
-        - 'arn:aws:iam::aws:policy/AdministratorAccess'
-      UserName: Developer
-  DeveloperUserAccessKey:
-    Type: 'AWS::IAM::AccessKey'
-    Properties:
-      UserName: !Ref DeveloperUser
-
   AWSServiceRoleForAmazonEKS:
     Type: 'AWS::IAM::Role'
     Properties:
@@ -33,14 +22,6 @@ Resources:
             Principal:
               Service:
                 - eks.amazonaws.com
-            Action:
-              - 'sts:AssumeRole'
-          - Effect: Allow
-            Principal:
-              AWS:
-                - !GetAtt
-                  - DeveloperUser
-                  - Arn
             Action:
               - 'sts:AssumeRole'
       ManagedPolicyArns:
@@ -158,14 +139,6 @@ Resources:
             Principal:
               Service:
                 - ec2.amazonaws.com
-            Action:
-              - 'sts:AssumeRole'
-          - Effect: Allow
-            Principal:
-              AWS:
-                - !GetAtt
-                  - DeveloperUser
-                  - Arn
             Action:
               - 'sts:AssumeRole'
       ManagedPolicyArns:
