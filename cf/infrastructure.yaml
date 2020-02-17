@@ -1,5 +1,16 @@
-Resources:
+Parameters:
+  RdsUsername:
+    Type: String
+    NoEcho: true
+    MinLength: 1
+    Default: postgres
+  RdsPassword:
+    Type: String
+    NoEcho: true
+    MinLength: 24
+    Default: 5bcfd3fb5cba35da5f1be3c347bc
 
+Resources:
   DeveloperUser:
     Type: 'AWS::IAM::User'
     Properties:
@@ -215,8 +226,8 @@ Resources:
       DBSubnetGroupName: !Ref PostgresSubnetGroup
       VPCSecurityGroups:
         - !Ref VPCSecurity
-      MasterUsername: postgres
-      MasterUserPassword: 5bcfd3fb5cba35da5f1be3c347bc
+      MasterUsername: !Ref RdsUsername
+      MasterUserPassword: !Ref RdsPassword
       Port: 5432
       PubliclyAccessible: 'true'
       StorageType: gp2
@@ -266,23 +277,3 @@ Resources:
                 - - 'arn:aws:s3:::'
                   - !Ref S3Bucket
                   - /*
-
-Outputs:
-  awsaccesskeyid:
-    Description: access key id for developers
-    Value: !Ref DeveloperUserAccessKey
-  awssecretaccesskey:
-    Description: access key secret for developers
-    Value: !GetAtt DeveloperUserAccessKey.SecretAccessKey
-  developerarn:
-    Description: 'DEVELOPER_ARN, store in aws variables'
-    Value: !GetAtt DeveloperUser.Arn
-  redis:
-    Description: 'REDIS_HOST, store in aws variables'
-    Value: !GetAtt Redis.RedisEndpoint.Address
-  postgres:
-    Description: 'POSTGRES_ADDRESS, store in aws variables'
-    Value: !GetAtt PostgresInstance.Endpoint.Address
-  region:
-    Description: 'REGION, store in aws variables'
-    Value: us-east-2
