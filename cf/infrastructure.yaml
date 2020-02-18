@@ -202,7 +202,7 @@ Resources:
       MasterUsername: !Ref RdsUsername
       MasterUserPassword: !Ref RdsPassword
       Port: 5432
-      PubliclyAccessible: 'true'
+      PubliclyAccessible: false
       StorageType: gp2
   PostgresSubnetGroup:
     Type: 'AWS::RDS::DBSubnetGroup'
