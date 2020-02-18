@@ -145,6 +145,7 @@ Resources:
         - 'arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy'
         - 'arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly'
         - 'arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy'
+        - 'arn:aws:iam::aws:policy/AmazonS3FullAccess'
   NodeGroup:
     Type: 'AWS::EKS::Nodegroup'
     Properties:
@@ -240,6 +241,7 @@ Resources:
               - 's3:DeleteObjectVersion'
               - 's3:GetObject'
               - 's3:GetObjectVersion'
+              - 's3:PutObject'
               - 's3:ListBucket'
             Effect: Allow
             Principal:
