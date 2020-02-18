@@ -197,6 +197,7 @@ Resources:
       MultiAZ: 'true'
       StorageEncrypted: 'true'
       DBSubnetGroupName: !Ref PostgresSubnetGroup
+      DBParameterGroupName: !Ref PostgresParameterGroup
       VPCSecurityGroups:
         - !Ref VPCSecurity
       MasterUsername: !Ref RdsUsername
@@ -211,6 +212,13 @@ Resources:
       SubnetIds:
         - !Ref VPCSubnet
         - !Ref VPCSubnetTwo
+  PostgresParameterGroup:
+    Type: 'AWS::RDS::DBParameterGroup'
+    Properties:
+      Description: Encrypt RDS connections
+      Family: postgres10
+      Parameters:
+        rds.force_ssl: true
 
   S3Bucket:
     Type: 'AWS::S3::Bucket'
