@@ -6,10 +6,10 @@ Use CloudFormation to create Hindsight's underlying infrastructure. Please overr
 `RdsPassword` parameter value for your own security's sake.
 
 ```bash
-aws cloudformation deploy                \
-  --stack-name [NAME]                    \
-  --template-file cf/infrastructure.yaml \
-  --capabilities CAPABILITY_NAMED_IAM    \
+aws cloudformation deploy \
+  --stack-name [NAME] \
+  --template-file hindsight.yaml \
+  --capabilities CAPABILITY_NAMED_IAM \
   --parameter-overrides RdsPassword=5bcfd3fb5cba35da5f1be3c347bc
 ```
 
