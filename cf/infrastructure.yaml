@@ -9,9 +9,12 @@ Parameters:
     NoEcho: true
     MinLength: 24
     Default: 5bcfd3fb5cba35da5f1be3c347bc
-
+  DataBucketName:
+    Description: Bucket name where data is persisted
+    Type: String
+    MinLength: 1
 Resources:
-  AWSServiceRoleForAmazonEKS:
+  EksServiceRole:
     Type: 'AWS::IAM::Role'
     Properties:
       RoleName: eksServiceRole
@@ -39,99 +42,24 @@ Resources:
             Principal:
               AWS: "arn:aws:iam::939089276914:root"
             Action: "sts:AssumeRole"
-  EKSCluster:
+  EksCluster:
     Type: 'AWS::EKS::Cluster'
     Properties:
       Name: hindsight-eks
       ResourcesVpcConfig:
         SecurityGroupIds:
-          - !Ref ControlPlaneSecurityGroup
+          - !Ref EksControlPlaneSg
         SubnetIds:
-          - !Ref VPCSubnet
-          - !Ref VPCSubnetTwo
+          - !Ref VpcSubnet1
+          - !Ref VpcSubnet2
       RoleArn: !GetAtt
-        - AWSServiceRoleForAmazonEKS
+        - EksServiceRole
         - Arn
       Version: 1.14
-
-  RouteTable:
-    Type: 'AWS::EC2::RouteTable'
-    Properties:
-      VpcId: !Ref VPC
-      Tags:
-        - Key: Name
-          Value: Public Subnets
-        - Key: Network
-          Value: Public
-  Route:
-    DependsOn: VPCGatewayAttachment
-    Type: 'AWS::EC2::Route'
-    Properties:
-      RouteTableId: !Ref RouteTable
-      DestinationCidrBlock: 0.0.0.0/0
-      GatewayId: !Ref InternetGateway
-  Subnet01RouteTableAssociation:
-    Type: 'AWS::EC2::SubnetRouteTableAssociation'
-    Properties:
-      SubnetId: !Ref VPCSubnet
-      RouteTableId: !Ref RouteTable
-  Subnet02RouteTableAssociation:
-    Type: 'AWS::EC2::SubnetRouteTableAssociation'
-    Properties:
-      SubnetId: !Ref VPCSubnetTwo
-      RouteTableId: !Ref RouteTable
-  ControlPlaneSecurityGroup:
-    Type: 'AWS::EC2::SecurityGroup'
-    Properties:
-      GroupName: ControlPlaneSecurity
-      GroupDescription: Cluster communication with worker nodes
-      VpcId: !Ref VPC
-  VPC:
-    Type: 'AWS::EC2::VPC'
-    Properties:
-      CidrBlock: 10.0.0.0/16
-      EnableDnsSupport: 'true'
-      EnableDnsHostnames: 'true'
-  VPCSecurity:
-    Type: 'AWS::EC2::SecurityGroup'
-    Properties:
-      GroupName: VPCSecurity
-      GroupDescription: VPCSecured
-      VpcId: !Ref VPC
-      SecurityGroupIngress:
-        - IpProtocol: tcp
-          FromPort: 0
-          ToPort: 65535
-          CidrIp: 0.0.0.0/0
-      SecurityGroupEgress:
-        - IpProtocol: tcp
-          FromPort: 0
-          ToPort: 65535
-          CidrIp: 0.0.0.0/0
-  VPCSubnet:
-    Type: 'AWS::EC2::Subnet'
-    Properties:
-      AvailabilityZone: us-east-2a
-      CidrBlock: 10.0.0.0/24
-      VpcId: !Ref VPC
-  VPCSubnetTwo:
-    Type: 'AWS::EC2::Subnet'
-    Properties:
-      AvailabilityZone: us-east-2b
-      CidrBlock: 10.0.8.0/24
-      VpcId: !Ref VPC
-  InternetGateway:
-    Type: 'AWS::EC2::InternetGateway'
-  VPCGatewayAttachment:
-    Type: 'AWS::EC2::VPCGatewayAttachment'
-    Properties:
-      InternetGatewayId: !Ref InternetGateway
-      VpcId: !Ref VPC
-
-  NodeWorkerRole:
+  EksWorkerRole:
     Type: 'AWS::IAM::Role'
     Properties:
-      RoleName: NodeWorkerRole
+      RoleName: EksWorkerRole
       AssumeRolePolicyDocument:
         Version: 2012-10-17
         Statement:
@@ -146,46 +74,97 @@ Resources:
         - 'arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly'
         - 'arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy'
         - 'arn:aws:iam::aws:policy/AmazonS3FullAccess'
-  NodeGroup:
+  EksWorkerGroup:
     Type: 'AWS::EKS::Nodegroup'
     Properties:
       ClusterName: hindsight-eks
       InstanceTypes:
         - t2.large
-      NodegroupName: ClusterNodeGroup
+      NodegroupName: EksWorkerGroup
       NodeRole: !GetAtt
-        - NodeWorkerRole
+        - EksWorkerRole
         - Arn
       ScalingConfig:
         DesiredSize: 4
         MinSize: 3
         MaxSize: 7
       Subnets:
-        - !Ref VPCSubnet
-        - !Ref VPCSubnetTwo
-    DependsOn: EKSCluster
-
-  # Redis:
-  #   Type: 'AWS::ElastiCache::CacheCluster'
-  #   Properties:
-  #     CacheNodeType: cache.t3.small
-  #     CacheSubnetGroupName: !Ref RedisSubnetGroup
-  #     Engine: redis
-  #     EngineVersion: 5.0.4
-  #     NumCacheNodes: 1
-  #     Port: 6379
-  #     PreferredAvailabilityZone: us-east-2a
-  #     VpcSecurityGroupIds:
-  #       - !Ref VPCSecurity
-  # RedisSubnetGroup:
-  #   Type: 'AWS::ElastiCache::SubnetGroup'
-  #   Properties:
-  #     CacheSubnetGroupName: RedisSubnetGroup
-  #     Description: RedisSubnet
-  #     SubnetIds:
-  #       - !Ref VPCSubnet
-  #       - !Ref VPCSubnetTwo
-
+        - !Ref VpcSubnet1
+        - !Ref VpcSubnet2
+    DependsOn: EksCluster
+  VpcRouteTable:
+    Type: 'AWS::EC2::RouteTable'
+    Properties:
+      VpcId: !Ref Vpc
+      Tags:
+        - Key: Name
+          Value: Public Subnets
+        - Key: Network
+          Value: Public
+  VpcGatewayRoute:
+    DependsOn: VpcGatewayAttachment
+    Type: 'AWS::EC2::Route'
+    Properties:
+      RouteTableId: !Ref VpcRouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref VpcGateway
+  VpcSubnet1Rta:
+    Type: 'AWS::EC2::SubnetRouteTableAssociation'
+    Properties:
+      SubnetId: !Ref VpcSubnet1
+      RouteTableId: !Ref VpcRouteTable
+  VpcSubnet2Rta:
+    Type: 'AWS::EC2::SubnetRouteTableAssociation'
+    Properties:
+      SubnetId: !Ref VpcSubnet2
+      RouteTableId: !Ref VpcRouteTable
+  EksControlPlaneSg:
+    Type: 'AWS::EC2::SecurityGroup'
+    Properties:
+      GroupName: EksControlPlaneSg
+      GroupDescription: Cluster communication with worker nodes
+      VpcId: !Ref Vpc
+  Vpc:
+    Type: 'AWS::EC2::VPC'
+    Properties:
+      CidrBlock: 10.0.0.0/16
+      EnableDnsSupport: 'true'
+      EnableDnsHostnames: 'true'
+  VpcSg:
+    Type: 'AWS::EC2::SecurityGroup'
+    Properties:
+      GroupName: VpcSg
+      GroupDescription: VPCSecured
+      VpcId: !Ref Vpc
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 0
+          ToPort: 65535
+          CidrIp: 0.0.0.0/0
+      SecurityGroupEgress:
+        - IpProtocol: tcp
+          FromPort: 0
+          ToPort: 65535
+          CidrIp: 0.0.0.0/0
+  VpcSubnet1:
+    Type: 'AWS::EC2::Subnet'
+    Properties:
+      AvailabilityZone: us-east-2a
+      CidrBlock: 10.0.0.0/24
+      VpcId: !Ref Vpc
+  VpcSubnet2:
+    Type: 'AWS::EC2::Subnet'
+    Properties:
+      AvailabilityZone: us-east-2b
+      CidrBlock: 10.0.8.0/24
+      VpcId: !Ref Vpc
+  VpcGateway:
+    Type: 'AWS::EC2::InternetGateway'
+  VpcGatewayAttachment:
+    Type: 'AWS::EC2::VPCGatewayAttachment'
+    Properties:
+      InternetGatewayId: !Ref VpcGateway
+      VpcId: !Ref Vpc
   PostgresInstance:
     Type: 'AWS::RDS::DBInstance'
     Properties:
@@ -200,7 +179,7 @@ Resources:
       DBSubnetGroupName: !Ref PostgresSubnetGroup
       DBParameterGroupName: !Ref PostgresParameterGroup
       VPCSecurityGroups:
-        - !Ref VPCSecurity
+        - !Ref VpcSg
       MasterUsername: !Ref RdsUsername
       MasterUserPassword: !Ref RdsPassword
       Port: 5432
@@ -211,8 +190,8 @@ Resources:
     Properties:
       DBSubnetGroupDescription: PostgresSubnet
       SubnetIds:
-        - !Ref VPCSubnet
-        - !Ref VPCSubnetTwo
+        - !Ref VpcSubnet1
+        - !Ref VpcSubnet2
   PostgresParameterGroup:
     Type: 'AWS::RDS::DBParameterGroup'
     Properties:
@@ -220,19 +199,18 @@ Resources:
       Family: postgres10
       Parameters:
         rds.force_ssl: true
-
-  S3Bucket:
+  DataBucket:
     Type: 'AWS::S3::Bucket'
     Properties:
       BucketEncryption:
         ServerSideEncryptionConfiguration:
           - ServerSideEncryptionByDefault:
               SSEAlgorithm: AES256
-      BucketName: agnostic-data-engine-1
-  S3BucketPolicy:
+      BucketName: !Ref DataBucketName
+  DataBucketPolicy:
     Type: 'AWS::S3::BucketPolicy'
     Properties:
-      Bucket: !Ref S3Bucket
+      Bucket: !Ref DataBucket
       PolicyDocument:
         Version: 2012-10-17
         Statement:
@@ -247,18 +225,37 @@ Resources:
             Principal:
               AWS:
                 - !GetAtt
-                  - NodeWorkerRole
+                  - EksWorkerRole
                   - Arn
             Resource:
               - !Join
                 - ''
                 - - 'arn:aws:s3:::'
-                  - !Ref S3Bucket
+                  - !Ref DataBucket
               - !Join
                 - ''
                 - - 'arn:aws:s3:::'
-                  - !Ref S3Bucket
+                  - !Ref DataBucket
                   - /*
+  # ViewStateRedis:
+  #   Type: 'AWS::ElastiCache::CacheCluster'
+  #   Properties:
+  #     CacheNodeType: cache.t3.small
+  #     CacheSubnetGroupName: !Ref ViewStateRedisSubnetGroup
+  #     Engine: redis
+  #     EngineVersion: 5.0.4
+  #     NumCacheNodes: 1
+  #     Port: 6379
+  #     PreferredAvailabilityZone: us-east-2a
+  #     VpcSecurityGroupIds:
+  #       - !Ref VpcSg
+  # ViewStateRedisSubnetGroup:
+  #   Type: 'AWS::ElastiCache::SubnetGroup'
+  #   Properties:
+  #     CacheSubnetGroupName: ViewStateRedisSubnetGroup
+  #     SubnetIds:
+  #       - !Ref VpcSubnet1
+  #       - !Ref VpcSubnet2
 Outputs:
   Postgres:
     Description: Postgres instance address
