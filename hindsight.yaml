@@ -264,3 +264,6 @@ Outputs:
   Postgres:
     Description: Postgres instance address
     Value: !GetAtt PostgresInstance.Endpoint.Address
+  AccountId:
+    Description: AWS Account ID
+    Value: !Ref "AWS::AccountId"
