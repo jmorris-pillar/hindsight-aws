@@ -1,2 +1,4 @@
 aws:
-  account: 0
+  role:
+    node: ""
+    user: ""

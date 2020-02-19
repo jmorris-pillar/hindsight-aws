@@ -1,20 +1,20 @@
 # hindsight-aws
 
-# Usage
+## Usage
 
-Use CloudFormation to create Hindsight's underlying infrastructure. Please override the 
-`RdsPassword` parameter value for your own security's sake.
-
-```bash
-aws cloudformation deploy \
-  --stack-name [NAME] \
-  --template-file hindsight.yaml \
-  --capabilities CAPABILITY_NAMED_IAM \
-  --parameter-overrides RdsPassword=5bcfd3fb5cba35da5f1be3c347bc
-```
-
-Apply an `iamidentitymapping` to allow users with the `eksUserRole` to work with EKS:
+Run `./deploy.sh` to create Hindsight's underlying infrastructure in AWS. Please override
+the `RdsPassword` parameter value for your own security's sake.
 
 ```bash
-helm template aws ./helm --set aws.account=[ACCOUNT_ID] | kubectl apply -f -
+./deploy.sh foo-stack foo-bucket --parameter-overrides RdsPassword=FooRdsInstancePassword
 ```
+
+Running the script will deploy a CloudFormation stack and apply an `iamidentitymapping` to
+the `aws-auth` ConfigMap in Kubernetes. Anyone who can assume the `hindsight-user-role` will
+be able to work with your EKS instance.
+
+## Installation
+
+At a minimum, you will need `awscli`, `kubectl`, and `helm`.
+
+Running our `./deploy.sh` script also requires `jq`.

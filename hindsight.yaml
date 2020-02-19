@@ -264,6 +264,9 @@ Outputs:
   Postgres:
     Description: Postgres instance address
     Value: !GetAtt PostgresInstance.Endpoint.Address
-  AccountId:
-    Description: AWS Account ID
-    Value: !Ref "AWS::AccountId"
+  NodeRole:
+    Description: EKS Worker Node Role ARN
+    Value: !GetAtt EksWorkerRole.Arn
+  UserRole:
+    Description: EKS User Role ARN
+    Value: !GetAtt EksUserRole.Arn
