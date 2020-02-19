@@ -17,7 +17,7 @@ Resources:
   EksServiceRole:
     Type: 'AWS::IAM::Role'
     Properties:
-      RoleName: eksServiceRole
+      RoleName: hindsight-service-role
       AssumeRolePolicyDocument:
         Version: 2012-10-17
         Statement:
@@ -34,18 +34,22 @@ Resources:
     Type: 'AWS::IAM::Role'
     Properties:
       Path: "/"
-      RoleName: eksUserRole
+      RoleName: hindsight-user-role
       AssumeRolePolicyDocument:
         Version: 2012-10-17
         Statement:
           - Effect: Allow
             Principal:
-              AWS: "arn:aws:iam::939089276914:root"
+              AWS: !Join
+                - ""
+                - - "arn:aws:iam::"
+                  - !Ref "AWS::AccountId"
+                  - ":root"
             Action: "sts:AssumeRole"
   EksCluster:
     Type: 'AWS::EKS::Cluster'
     Properties:
-      Name: hindsight-eks
+      Name: hindsight-kubernetes
       ResourcesVpcConfig:
         SecurityGroupIds:
           - !Ref EksControlPlaneSg
@@ -59,7 +63,7 @@ Resources:
   EksWorkerRole:
     Type: 'AWS::IAM::Role'
     Properties:
-      RoleName: EksWorkerRole
+      RoleName: hindsight-worker-role
       AssumeRolePolicyDocument:
         Version: 2012-10-17
         Statement:
@@ -77,10 +81,10 @@ Resources:
   EksWorkerGroup:
     Type: 'AWS::EKS::Nodegroup'
     Properties:
-      ClusterName: hindsight-eks
+      ClusterName: hindsight-kubernetes
       InstanceTypes:
         - t2.large
-      NodegroupName: EksWorkerGroup
+      NodegroupName: hindsight-worker-group
       NodeRole: !GetAtt
         - EksWorkerRole
         - Arn
@@ -121,7 +125,7 @@ Resources:
   EksControlPlaneSg:
     Type: 'AWS::EC2::SecurityGroup'
     Properties:
-      GroupName: EksControlPlaneSg
+      GroupName: hindsight-control-plane-sg
       GroupDescription: Cluster communication with worker nodes
       VpcId: !Ref Vpc
   Vpc:
@@ -133,7 +137,7 @@ Resources:
   VpcSg:
     Type: 'AWS::EC2::SecurityGroup'
     Properties:
-      GroupName: VpcSg
+      GroupName: hindsight-vpc-sg
       GroupDescription: VPCSecured
       VpcId: !Ref Vpc
       SecurityGroupIngress:
