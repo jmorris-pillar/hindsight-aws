@@ -1,10 +1,10 @@
 Parameters:
-  RdsUsername:
+  DbUsername:
     Type: String
     NoEcho: true
     MinLength: 1
     Default: postgres
-  RdsPassword:
+  DbPassword:
     Type: String
     NoEcho: true
     MinLength: 24
@@ -184,8 +184,8 @@ Resources:
       DBParameterGroupName: !Ref PostgresParameterGroup
       VPCSecurityGroups:
         - !Ref VpcSg
-      MasterUsername: !Ref RdsUsername
-      MasterUserPassword: !Ref RdsPassword
+      MasterUsername: !Ref DbUsername
+      MasterUserPassword: !Ref DbPassword
       Port: 5432
       PubliclyAccessible: false
       StorageType: gp2

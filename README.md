@@ -3,10 +3,10 @@
 ## Usage
 
 Run `./deploy.sh` to create Hindsight's underlying infrastructure in AWS. Please override
-the `RdsPassword` parameter value for your own security's sake.
+the `DbPassword` parameter value for your own security's sake.
 
 ```bash
-./deploy.sh foo-stack foo-bucket --parameter-overrides RdsPassword=FooRdsInstancePassword
+./deploy.sh foo-stack foo-bucket --parameter-overrides DbPassword=FooRdsInstancePassword
 ```
 
 Running the script will deploy a CloudFormation stack and apply an `iamidentitymapping` to
