@@ -7,7 +7,8 @@ Parameters:
   DbPassword:
     Type: String
     NoEcho: true
-    MinLength: 24
+    MinLength: 8
+    MaxLength: 128
     Default: 5bcfd3fb5cba35da5f1be3c347bc
   DataBucketName:
     Description: Bucket name where data is persisted
@@ -241,29 +242,33 @@ Resources:
                 - - 'arn:aws:s3:::'
                   - !Ref DataBucket
                   - /*
-  # ViewStateRedis:
-  #   Type: 'AWS::ElastiCache::CacheCluster'
-  #   Properties:
-  #     CacheNodeType: cache.t3.small
-  #     CacheSubnetGroupName: !Ref ViewStateRedisSubnetGroup
-  #     Engine: redis
-  #     EngineVersion: 5.0.4
-  #     NumCacheNodes: 1
-  #     Port: 6379
-  #     PreferredAvailabilityZone: us-east-2a
-  #     VpcSecurityGroupIds:
-  #       - !Ref VpcSg
-  # ViewStateRedisSubnetGroup:
-  #   Type: 'AWS::ElastiCache::SubnetGroup'
-  #   Properties:
-  #     CacheSubnetGroupName: ViewStateRedisSubnetGroup
-  #     SubnetIds:
-  #       - !Ref VpcSubnet1
-  #       - !Ref VpcSubnet2
+  RedisInstance:
+    Type: 'AWS::ElastiCache::CacheCluster'
+    Properties:
+      Engine: redis
+      EngineVersion: 5.0.4
+      NumCacheNodes: 1
+      CacheNodeType: cache.t3.small
+      CacheSubnetGroupName: !Ref RedisSubnetGroup
+      Port: 6379
+      PreferredAvailabilityZone: us-east-2a
+      VpcSecurityGroupIds:
+        - !Ref VpcSg
+  RedisSubnetGroup:
+    Type: 'AWS::ElastiCache::SubnetGroup'
+    Properties:
+      Description: Subnet for Redis
+      CacheSubnetGroupName: RedisSubnetGroup
+      SubnetIds:
+        - !Ref VpcSubnet1
+        - !Ref VpcSubnet2
 Outputs:
   Postgres:
     Description: Postgres instance address
     Value: !GetAtt PostgresInstance.Endpoint.Address
+  Redis:
+    Description: Redis instance address
+    Value: !GetAtt RedisInstance.RedisEndpoint.Address
   NodeRole:
     Description: EKS Worker Node Role ARN
     Value: !GetAtt EksWorkerRole.Arn
