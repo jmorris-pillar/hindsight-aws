@@ -18,6 +18,12 @@ Parameters:
     Description: The name of the environment
     Type: String
     Default: dev
+  GrafanaPassword:
+    Type: String
+    NoEcho: true
+    MinLength: 8
+    MaxLength: 128
+    Default: 70ff9f8573535f9866d745c24303
 Resources:
   EksServiceRole:
     Type: 'AWS::IAM::Role'
@@ -315,6 +321,18 @@ Resources:
       SecretString: !Sub
         - '{"endpoint":"${EndpointAddress}"}'
         - EndpointAddress: !GetAtt RedisInstance.RedisEndpoint.Address
+  GrafanaInfo:
+    Type: AWS::SecretsManager::Secret
+    Properties:
+      Name: !Sub
+        - 'GrafanaInfo-${EnvironmentName}'
+        - EnvironmentName: !Ref EnvironmentName
+      Description: !Sub
+        - 'Secret for ${EnvironmentName} Grafana'
+        - EnvironmentName: !Ref EnvironmentName
+      SecretString: !Sub
+        - '{"password":"${GrafanaPassword}"}'
+        - GrafanaPassword: !Ref GrafanaPassword
 Outputs:
   Postgres:
     Description: Postgres instance address
