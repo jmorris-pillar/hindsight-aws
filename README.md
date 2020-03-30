@@ -2,11 +2,10 @@
 
 ## Usage
 
-Run `./deploy.sh` to create Hindsight's underlying infrastructure in AWS. Please override
-the `DbPassword` parameter value for your own security's sake.
+Run `./deploy.sh` to create Hindsight's underlying infrastructure in AWS. It will create a cloud formation stack named $StackPrefix-$EnvironmentName and an s3 bucket named $BucketPrefix-$EnvironmentName
 
 ```bash
-./deploy.sh foo-stack foo-bucket --parameter-overrides DbPassword=FooRdsInstancePassword
+./deploy.sh foo-stack-prefix foo-bucket-prefix environmentName
 ```
 
 Running the script will deploy a CloudFormation stack and apply an `iamidentitymapping` to
