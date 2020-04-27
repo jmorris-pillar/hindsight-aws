@@ -157,6 +157,19 @@ Resources:
         - EnvironmentName: !Ref EnvironmentName
       GroupDescription: Cluster communication with worker nodes
       VpcId: !Ref Vpc
+      SecurityGroupEgress:
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: 443
+          ToPort: 443
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: 1024
+          ToPort: 65535
+          CidrIp: 0.0.0.0/0
   Vpc:
     Type: 'AWS::EC2::VPC'
     Properties:
@@ -178,12 +191,28 @@ Resources:
       VpcId: !Ref Vpc
       SecurityGroupIngress:
         - IpProtocol: tcp
-          FromPort: 0
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: 443
+          ToPort: 443
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: 1024
           ToPort: 65535
           CidrIp: 0.0.0.0/0
       SecurityGroupEgress:
         - IpProtocol: tcp
-          FromPort: 0
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: 443
+          ToPort: 443
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: 1024
           ToPort: 65535
           CidrIp: 0.0.0.0/0
   VpcSubnet1:
@@ -208,6 +237,9 @@ Resources:
   VpcFlowLogRole:
     Type: 'AWS::IAM::Role'
     Properties:
+      RoleName: !Sub
+        - 'VpcFlowLogRole-${EnvironmentName}'
+        - EnvironmentName: !Ref EnvironmentName
       AssumeRolePolicyDocument:
         Version: '2012-10-17'
         Statement:
@@ -248,6 +280,9 @@ Resources:
       AllocatedStorage: 100
       BackupRetentionPeriod: 7
       DBInstanceClass: db.t3.medium
+      DBInstanceIdentifier: !Sub
+        - 'metastore-${EnvironmentName}'
+        - EnvironmentName: !Ref EnvironmentName
       DBName: metastore
       Engine: postgres
       EngineVersion: 10
