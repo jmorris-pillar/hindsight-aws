@@ -157,6 +157,36 @@ Resources:
         - EnvironmentName: !Ref EnvironmentName
       GroupDescription: Cluster communication with worker nodes
       VpcId: !Ref Vpc
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 10.15.144.73/32
+        - IpProtocol: tcp
+          FromPort: 443
+          ToPort: 443
+          CidrIp: 10.15.144.73/32
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 10.15.144.74/32
+        - IpProtocol: tcp
+          FromPort: 443
+          ToPort: 443
+          CidrIp: 10.15.144.74/32
+      SecurityGroupEgress:
+        - IpProtocol: -1
+          FromPort: 0
+          ToPort: 65535
+          CidrIp: 0.0.0.0/0
+  EksControlPlaneSgIngress:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      IpProtocol: -1
+      FromPort: 0
+      ToPort: 65535
+      SourceSecurityGroupId: !GetAtt EksControlPlaneSg.GroupId
+      GroupId: !GetAtt EksControlPlaneSg.GroupId
   Vpc:
     Type: 'AWS::EC2::VPC'
     Properties:
